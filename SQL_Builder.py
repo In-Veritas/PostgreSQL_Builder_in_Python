@@ -36,7 +36,7 @@ for file in os.listdir(path):
     line = f.readline()
     listing = line.split(',')
 
-    types = {1:"INT", 2:"BIGINT", 3:"VARCHAR", 4:"BOOL", 5:"SERIAL", 6:"DECIMAL"}
+    types = {'1':"INT", '2':"BIGINT", '3':"VARCHAR", '4':"BOOL", '5':"SERIAL", '6':"DECIMAL"}
     diff = ["VARCHAR"]
     do_it_for_all = False
     data_type = 0
