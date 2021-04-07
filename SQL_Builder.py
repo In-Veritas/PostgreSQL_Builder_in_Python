@@ -7,9 +7,9 @@ def replace_invalid_characters(name):
     return ''.join(e for e in name if e.isalnum())
 
 def res_do_it_for_all():
-    res = input("\nDo it for all ? [y/N] \n\n")
+    res = input("\n\x1b[32mDo it for all ? [y/N] \n\n\x1b[39m")
     if res.upper() == "Y":
-        print("\nTHIS CHOICE WILL AFFECT ALL OTHER COLUMNS ON THIS LIST\n\n")
+        print("\n\x1b[41mTHIS CHOICE WILL AFFECT ALL OTHER COLUMNS ON THIS LIST\x1b[49m\n\n")
         return True
     return False
 
@@ -36,7 +36,7 @@ for file in os.listdir(path):
     line = f.readline()
     listing = line.split(',')
 
-    types = {1:"INT", 2:"BIGINT", 3:"VARCHAR", 4:"BOOL", 5:"SERIAL", 6:"DECIMAL"}
+    types = {'1':"INT", '2':"BIGINT", '3':"VARCHAR", '4':"BOOL", '5':"SERIAL", '6':"DECIMAL"}
     diff = ["VARCHAR"]
     do_it_for_all = False
     data_type = 0
@@ -45,8 +45,8 @@ for file in os.listdir(path):
         while True:
             if not do_it_for_all:
                 print(column)
-                data_type = input("DataType? \n 1. INT \n 2. BIGINT \n 3. VARCHAR \n 4. BOOL \n 5. SERIAL \n 6. DECIMAL\n\n")
-            if data_type.isnumeric() and data_type in types:
+                data_type = int(input("\x1b[32mDataType? \n 1. INT \n 2. BIGINT \n 3. VARCHAR \n 4. BOOL \n 5. SERIAL \n 6. DECIMAL\x1b[39m\n\n"))
+            if data_type in types:
                 if types[data_type] not in diff:
                     SQL_data.append(replace_invalid_characters(column) + " " + types[data_type] )
                     if not do_it_for_all:
@@ -55,17 +55,17 @@ for file in os.listdir(path):
                 elif types[data_type] == "VARCHAR":
                     while True:
                         if not do_it_for_all :
-                            max_size = input("\nMax size of string?\n\n")
+                            max_size = input("\n\x1b[32mMax size of string?\x1b[39m\n\n")
                         if max_size.isnumeric():
                             SQL_data.append(replace_invalid_characters(column) + " VARCHAR(" + str(max_size) + ")")
                             if not do_it_for_all:
                                 do_it_for_all = res_do_it_for_all();
                             break;
                         else:
-                            print("\nINVALID ENTRY\n")
+                            print("\x1b[41mINVALID ENTRY\x1b[49m")
                     break;
             else:
-                print('\nINVALID ENTRY\n')   
+                print('\x1b[41mINVALID ENTRY\x1b[49m')    
 
     #After the iteration, the script will build a PostgreSQL query based on the information given
     string_SQL_data = ','.join(SQL_data)
