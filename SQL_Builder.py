@@ -52,7 +52,7 @@ def get_suggest_type(path_f, data_names):
                     types["VARCHAR"] = False
             if types["BOOL"] and elem not in list_pg_bool:
                 types["BOOL"] = False
-            if types["SERIAL"] and elem != "DEFAULT" and (not elem.isnumeric() or int(elem) >= 2*31-1 or int(elem) < 1):
+            if types["SERIAL"] and elem != "DEFAULT" and (not elem.isnumeric() or int(elem) >= 2**31-1 or int(elem) < 1):
                 types["SERIAL"] = False
             if types["DECIMAL"]:
                 if not is_float(elem) or len(elem.split(".")) != 2 :
