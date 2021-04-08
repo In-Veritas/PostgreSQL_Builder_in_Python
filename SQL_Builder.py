@@ -13,6 +13,28 @@ def res_do_it_for_all():
         return True
     return False
 
+def yes_or_no():
+    while True:
+        answer = input("\n")
+        if answer.upper() == "Y":
+            return True
+        if answer.upper() == "N":
+            return False
+        else:
+            print("\nINVALID ENTRY")
+
+def confirm(query, con):
+    global confirmation
+    if confirmation == True:
+        print(query.as_string(con))
+        print("\nCONFIRM QUERY? (Y/N)")
+        if yes_or_no():
+            pass
+        else:
+            pass
+            ####################___________UNDO___________####################
+
+
 
 print("If you wish to make it faster, change the entries directly on the code.")
 your_database = input("Insert Database: ")
@@ -23,6 +45,8 @@ your_port = input("Insert Port: ")
 
 # This script will iterate with all CSV files in a folder. DO NOT leave any non CSV files in your folder.
 path = "C:/YourPath"   #Insert Path of your folder
+
+confirmation = True
 
 for file in os.listdir(path):
     if not file.endswith('.csv'):
@@ -36,8 +60,8 @@ for file in os.listdir(path):
     line = f.readline()
     listing = line.split(',')
 
-    types = {'1':"INT", '2':"BIGINT", '3':"VARCHAR", '4':"BOOL", '5':"SERIAL", '6':"DECIMAL"}
-    diff = ["VARCHAR"]
+    types = {'1':"INT", '2':"BIGINT", '3':"VARCHAR", '4':"BOOL", '5':"SERIAL", '6':"DECIMAL", '7':"Change confirmation settings"}
+    diff = ["VARCHAR", "TURN OFF CONFIRMATION"]
     do_it_for_all = False
     data_type = 0
 
@@ -64,6 +88,21 @@ for file in os.listdir(path):
                         else:
                             print("\x1b[41mINVALID ENTRY\x1b[49m")
                     break;
+                elif types[data_type] == "Change confirmation settings":
+                    if confirmation == True:
+                        print("\n Confirmation is set to True, would you like to change this setting?(Y/N)\nBy changing it, the program will no longer show you the query you built nor ask if you really wish to send it.")
+                        if yes_or_no():
+                            print("\n Confirmation was set to False, select 7 again to change this setting.")
+                            confirmation = False
+                        else:
+                            print("\n Confirmation settings will remain the same.")
+                    else:
+                        print("\n Confirmation is set to False, would you like to change this setting?(Y/N)\n By changing it, the program will start showing you the query and asking you if you confirm it's execution.")
+                        if yes_or_no():
+                            print("\n Confirmation was set to True, select 7 again to change this setting.")
+                            confirmation = True
+                        else:
+                            print("\n Confirmation settings will remain the same.")
             else:
                 print('\x1b[41mINVALID ENTRY\x1b[49m')    
 
@@ -72,13 +111,16 @@ for file in os.listdir(path):
     query = sql.SQL("CREATE TABLE {some_table} ({table_data});").format(
         some_table=sql.SQL(os.path.splitext(file)[0]),
         table_data=sql.SQL(string_SQL_data))
+    if confirmation == True:
+        confirm(query, con)
     cur.execute(query) 
     string_SQL_data = []
     con.commit()
     query = sql.SQL("COPY {some_table} FROM '{original_file}' DELIMITER ',' CSV HEADER ENCODING 'UTF8';").format(
         some_table=sql.SQL(os.path.splitext(file)[0]),
         original_file=sql.SQL(filepath))
+    if confirmation == True:
+        confirm(query, con)
     cur.execute(query) 
     con.commit()
     con.close()
-
