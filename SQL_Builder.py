@@ -145,11 +145,11 @@ def create_from_csv_manualy(path_sql, path_csv, con, cur):
 def create_from_csv_automatically(path_csv, con, cur):
     files = os.listdir(path_csv)
     for file in files:
-        file_path = f"{path_csv}/{file}"
+        file_path = f"{path_csv}{file}"
         with open(file_path, "r") as f:
             table_name = file[:-4]
             lines = list(csv.reader(f, delimiter=',', quotechar='"'))
-            header = lines[0]
+            header = ["_".join(elem.split(" ")) for elem in lines[0]]
             max_varchar = get_max_varchar_from_csv(lines)
             sql_data = [f"{header[i]} VARCHAR({max_varchar[i]})" for i in range(len(header))]
             execute_sql(f"CREATE TABLE {table_name} ({','.join(sql_data)});COPY {table_name} FROM '{file_path}' DELIMITER ',' CSV HEADER ENCODING 'UTF8';\n", con, cur)
@@ -157,7 +157,7 @@ def create_from_csv_automatically(path_csv, con, cur):
 
 
 def get_max_varchar_from_csv(lines):
-    l_max = [len(elem) for elem in lines[1]]
+    l_max = [1 for i in range(len(lines))]
     for i in range(2,len(lines)):
         for j in range(len(lines[i])):
             if l_max[j] < len(lines[i][j]):
@@ -298,7 +298,6 @@ def drop_tables(con, cur):
     for table in selected_tables:
         cur.execute(f"DROP TABLE {table};")
         con.commit()
-    
 
 def init_db():
     print("If you wish to make it faster, change the entries directly on the code.")
