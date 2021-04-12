@@ -15,7 +15,7 @@ def res_do_it_for_all():
 
 def create_from_csv(path_sql, path_csv, con, cur):
     files = os.listdir(path_csv)
-    print(f"\nChoice the file ({len(files)+2}):")
+    print(f"\nChoose the file ({len(files)+2}):")
     for i in range(len(files)):
         print(f"{i+1}. {files[i]}")
     if len(files) >= 2:
@@ -127,7 +127,7 @@ def create_from_csv(path_sql, path_csv, con, cur):
         string_SQL_data = ','.join(SQL_data)
         table_name = file[:-4]
 
-        res = input("\nFinal step (1):\n1. Create table and import datas\n2. Create table without datas\n3. Export table without datas\n4. Export table with datas\n5. Cancel\n\n")
+        res = input("\nFinal step (1):\n1. Create table and import data\n2. Create table without data\n3. Export table without data\n4. Export table with data\n5. Cancel\n\n")
         if res == "2":
             execute_sql(sql.SQL(f"CREATE TABLE {table_name} ({string_SQL_data});"), con, cur)
         elif res == "3":
@@ -217,7 +217,7 @@ def execute_sql(query, con, cur):
         con.commit()
     except psycopg2.errors.DuplicateTable as e:
         e = str(e)
-        res = input("\nDatabase already exist\nDrop the table ?\nY. Drop\nn. Cancel\n\n")
+        res = input("\nTable already exists\nDrop the table ?\nY. Drop\nn. Cancel\n\n")
         if res.upper() == "Y" or res == "":
             con.rollback()
             table_name = e.split("«")[1].split("»")[0] if "«" in e else e.split('"')[0]
