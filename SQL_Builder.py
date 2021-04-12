@@ -146,7 +146,8 @@ def create_from_csv_automatically(path_csv, con, cur):
     files = os.listdir(path_csv)
     for file in files:
         file_path = f"{path_csv}{file}"
-        with open(file_path, "r") as f:
+        print(file_path)
+        with open(file_path, "r", encoding='utf8') as f:
             table_name = file[:-4]
             lines = list(csv.reader(f, delimiter=',', quotechar='"'))
             header = ["_".join(elem.split(" ")) for elem in lines[0]]
