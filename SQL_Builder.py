@@ -2,7 +2,6 @@ import psycopg2
 from psycopg2 import sql, errors
 import os
 import csv
-from getpass import getpass
 
 def replace_invalid_characters(name):
     return ''.join(e for e in name if e.isalnum())
@@ -47,16 +46,16 @@ def create_from_csv(path_sql, path_csv, con, cur):
         data_names = list(dict_data.keys())
 
         list_action = [[]]
-        types = {'1':"INT", '2':"BIGINT", '3':"VARCHAR", '4':"BOOL", '5':"SERIAL", '6':"DECIMAL"}
-        diff = ["VARCHAR"]
         do_it_for_all = False
         idx_column = 0
-
+        dict_suggest, dict_wnis = get_suggest_type(filepath, data_names)
+        print(dict_suggest)
+        print(dict_wnis)
         while True:
                 print("\nList column :")
                 print_listing(dict_data)
                 print("\nCurrent column :\n"+data_names[idx_column])
-                res = input("\nMenu: (1) \n 1. next \n 2. do it for all \n 3. undo\n 4. suggest\n\n")
+                res = input("\nMenu: (1) \n 1. next \n 2. do it for all \n 3. undo\n\n")
                 if res == '1' or res == '':
                     do_it_for_all = False
                 elif res == '2':
@@ -70,33 +69,34 @@ def create_from_csv(path_sql, path_csv, con, cur):
                         idx_column -= 1
                     list_action.pop(-1)
                     continue
-                elif res == '4':
-                    dict_suggest = get_suggest_type(filepath, data_names)
-                    print("\nSuggest:")
-                    for key in dict_suggest:
-                        msg = f"{key} : "
-                        for type in dict_suggest[key]:
-                            msg += f"{type} "
-                        print(f"{msg}")
-                    continue
                 else:
-                    print('\nINVALID ENTRY\n')
                     continue
-
                 list_action.append([])
-                data_type = input("\nDataType? \n 1. INT \n 2. BIGINT \n 3. VARCHAR \n 4. BOOL \n 5. SERIAL \n 6. DECIMAL\n\n")
-                if data_type.isnumeric() and data_type in types:
-                    dict_data[data_names[idx_column]].append(types[data_type])
-                    if types[data_type] == "VARCHAR":
-                        waiting_input("Max size of string", dict_data, data_names, idx_column)
-                    if types[data_type] == "DECIMAL":
-                        waiting_input("Total number size", dict_data, data_names, idx_column)
-                        waiting_input("Precision", dict_data, data_names, idx_column)
-                    list_action[-1].append(data_names[idx_column])
-                    idx_column += 1
-                else:
-                    print('\nINVALID ENTRY\n')
-                    continue
+                types = {}
+                for idx,dtype in enumerate(dict_suggest[data_names[idx_column]]):
+                    dtype = dtype.split("-")
+                    types[str(idx+1)] = [elem for elem in dtype]
+                
+                while True:
+                    print("\nDataType?")
+                    for idx in types:
+                        print(f"\n{idx}. {types[idx][0]}")
+                    data_type = input("\nx. Why not the others ?\n\n")
+                    if data_type.isnumeric() and data_type in types:
+                        dict_data[data_names[idx_column]].append(types[data_type][0])
+                        if types[data_type][0] == "VARCHAR":
+                            waiting_input(f"Max size of string, min:{types[data_type][1]}", dict_data, data_names, idx_column, types[data_type][1] )
+                        if types[data_type][0] == "DECIMAL":
+                            waiting_input(f"Total number size, min:{types[data_type][2]}", dict_data, data_names, idx_column, types[data_type][2])
+                            waiting_input(f"Precision, min:{types[data_type][3]}", dict_data, data_names, idx_column, types[data_type][3])
+                        list_action[-1].append(data_names[idx_column])
+                        idx_column += 1
+                        break;
+                    elif data_type.upper() == "X":
+                        for elem in dict_wnis[data_names[idx_column]].values():
+                            print(elem) 
+                    else:
+                        print('\nINVALID ENTRY\n')
                 
                 if do_it_for_all:
                     idx_tmp = idx_column-1
@@ -107,7 +107,6 @@ def create_from_csv(path_sql, path_csv, con, cur):
                         
                 
                 if idx_column == len(data_names):
-                    print_listing(dict_data)
                     res = input("\nAll defined (1):\n1. Finish\n2. Undo\n\n")
                     if res == '2':
                         for key in list_action[-1]:
@@ -155,8 +154,10 @@ def is_float(num):
     except ValueError:
         return False
 
+
 def get_suggest_type(path_f, data_names):
     dict_suggest = {name : [] for name in data_names}
+    dict_why_not_in_suggest = {name : {} for name in data_names}
     dict_data = {name : [] for name in data_names}
     with open(path_f, newline='', encoding="utf-8") as csv_f:
         lines = csv.reader(csv_f, delimiter=',', quotechar='"')
@@ -171,44 +172,50 @@ def get_suggest_type(path_f, data_names):
         size_varchar = 0
         size_deci = 0
         nb_deci = 0
-        for elem in dict_data[name]:
+        for idx,elem in enumerate(dict_data[name]):
             if types["INT"] and (not elem.isnumeric() or abs(int(elem)) > 2**31-1):
                 types["INT"] = False
+                dict_why_not_in_suggest[name]["INT"] = f"INT : line {idx} : {elem}"
             if types["BIGINT"] and (not elem.isnumeric() or abs(int(elem) > 2**63-1)):
                 types["BIGINT"] = False
+                dict_why_not_in_suggest[name]["BIGINT"] = f"BIGINT : line {idx} : {elem}"
             if types["VARCHAR"] and int(size_varchar) < len(elem):
                 size_varchar = len(elem)
                 if size_varchar > 10485760:
                     types["VARCHAR"] = False
+                    dict_why_not_in_suggest[name]["VARCHAR"] = f"VARCHAR : line {idx} : {elem}"
             if types["BOOL"] and elem not in list_pg_bool:
                 types["BOOL"] = False
+                dict_why_not_in_suggest[name]["BOOL"] = f"BOOL : line {idx} : {elem}"
             if types["SERIAL"] and elem != "DEFAULT" and (not elem.isnumeric() or int(elem) >= 2**31-1 or int(elem) < 1):
                 types["SERIAL"] = False
+                dict_why_not_in_suggest[name]["SERIAL"] = f"SERIAL : line {idx} : {elem}"
             if types["DECIMAL"]:
                 if not is_float(elem) or len(elem.split(".")) != 2 :
                     types["DECIMAL"] = False
+                    dict_why_not_in_suggest[name]["DECIMAL"] = f"DECIMAL : line {idx} : {elem}"
                 else:
                     if len(elem) > size_deci:
                         size_deci = len(elem)-1
                     elem = elem.split(".")
-                    print(elem)
                     if len(elem[1]) > nb_deci:
                         nb_deci = len(elem[1])
                     if (size_deci - nb_deci) > 131072 or nb_deci > 16383:
                         types["DECIMAL"] = False
+                        dict_why_not_in_suggest[name]["DECIMAL"] = f"DECIMAL : line {idx} : {elem}"
         for type in types:
             if types[type]:
                 dict_suggest[name].append(type)
                 if type == "VARCHAR":
-                    dict_suggest[name][-1] += f"({size_varchar})"
+                    dict_suggest[name][-1] += f"-{size_varchar}"
                 if type == "DECIMAL":
-                    dict_suggest[name][-1] += f"({size_deci}, {nb_deci})"
-    return dict_suggest
+                    dict_suggest[name][-1] += f"-{size_deci}-{nb_deci}"
+    return dict_suggest,dict_why_not_in_suggest
                 
-def waiting_input(msg : str, dict_data : dict, data_names : list, idx_column : int):
+def waiting_input(msg : str, dict_data : dict, data_names : list, idx_column : int, mini = 0):
     while True:
         value = input(f"\n{msg}\n\n")
-        if value.isnumeric():
+        if value.isnumeric() and value >= mini:
             dict_data[data_names[idx_column]].append(value)
             break;
         else:
@@ -218,7 +225,7 @@ def execute_sql(query, con, cur):
     try:
         cur.execute(query)
         con.commit()
-    except psycopg2.errors.DuplicateTable as e:
+    except (psycopg2.errors.DuplicateTable, psycopg2.errors.SyntaxError) as e:
         e = str(e)
         res = input("\nTable already exists\nDrop the table ?\nY. Drop\nn. Cancel\n\n")
         if res.upper() == "Y" or res == "":
@@ -228,16 +235,7 @@ def execute_sql(query, con, cur):
             con.commit()
             cur.execute(query)
             con.commit()
-    except psycopg2.errors.SyntaxError as e:
-        e = str(e)
-        res = input("\nTable has invalid characters/protected words\nDrop the table ?\nY. Drop\nn. Cancel\n\n")
-        if res.upper() == "Y" or res == "":
-            con.rollback()
-            table_name = e.split("«")[1].split("»")[0] if "«" in e else e.split('"')[0]
-            cur.execute(f"DROP TABLE{table_name};")
-            con.commit()
-            cur.execute(query)
-            con.commit()
+
 def export_sql(query, sql_file, option):
     with open(sql_file, option, encoding="utf-8") as f:
         f.write(query)
@@ -284,7 +282,7 @@ def init_db():
     print("If you wish to make it faster, change the entries directly on the code.")
     your_database = input("Insert Database: ")
     your_user = input("Insert User: ")
-    your_password = getpass("Insert Password: ")
+    your_password = input("Insert Password: ")
     your_host = input("Insert Host: ")
     your_port = input("Insert Port: ")
 
@@ -292,9 +290,8 @@ def init_db():
 
 def main(con):
     # This script will iterate with all CSV files in a folder. DO NOT leave any non CSV files in your folder.
-    your_path = input("Insert Path: ")
-    path_csv = your_path   #Insert Path of your csv folder
-    path_sql = your_path   #Insert Path of your sql folder
+    path_csv = "C:/YourPath"   #Insert Path of your csv folder
+    path_sql = "C:/YourPath"   #Insert Path of your sql folder
 
     cur = con.cursor()
 
