@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import sql, errors
 import os
 import csv
+from getpass import getpass
 
 def replace_invalid_characters(name):
     return ''.join(e for e in name if e.isalnum())
@@ -107,6 +108,7 @@ def create_from_csv(path_sql, path_csv, con, cur):
                         
                 
                 if idx_column == len(data_names):
+                    print_listing(dict_data)
                     res = input("\nAll defined (1):\n1. Finish\n2. Undo\n\n")
                     if res == '2':
                         for key in list_action[-1]:
@@ -282,7 +284,7 @@ def init_db():
     print("If you wish to make it faster, change the entries directly on the code.")
     your_database = input("Insert Database: ")
     your_user = input("Insert User: ")
-    your_password = input("Insert Password: ")
+    your_password = getpass("Insert Password: ")
     your_host = input("Insert Host: ")
     your_port = input("Insert Port: ")
 
@@ -290,8 +292,9 @@ def init_db():
 
 def main(con):
     # This script will iterate with all CSV files in a folder. DO NOT leave any non CSV files in your folder.
-    path_csv = "C:/YourPath"   #Insert Path of your csv folder
-    path_sql = "C:/YourPath"   #Insert Path of your sql folder
+    your_path = input("Insert Path: ")
+    path_csv = your_path   #Insert Path of your csv folder
+    path_sql = your_path   #Insert Path of your sql folder
 
     cur = con.cursor()
 
