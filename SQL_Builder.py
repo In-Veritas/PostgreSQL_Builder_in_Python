@@ -312,7 +312,13 @@ def init_db():
 
 def main(con):
     # This script will iterate with all CSV files in a folder. DO NOT leave any non CSV files in your folder.
-    your_path = input("Insert Path: ")
+    your_path_input = input("Insert Path: ")
+    your_path = ''
+    your_path += your_path_input
+    for letter in your_path:
+        if letter == '\\':
+            letter = '/'
+
     path_csv = your_path   #Insert Path of your csv folder
     path_sql = your_path   #Insert Path of your sql folder
 
