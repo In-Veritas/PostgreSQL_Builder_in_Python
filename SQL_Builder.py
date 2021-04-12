@@ -14,7 +14,7 @@ def res_do_it_for_all():
         return True
     return False
 
-def create_from_csv(path_sql, path_csv, con, cur):
+def create_from_csv_manualy(path_sql, path_csv, con, cur):
     files = os.listdir(path_csv)
     print(f"\nChoose the file ({len(files)+2}):")
     for i in range(len(files)):
@@ -50,8 +50,6 @@ def create_from_csv(path_sql, path_csv, con, cur):
         do_it_for_all = False
         idx_column = 0
         dict_suggest, dict_wnis = get_suggest_type(filepath, data_names)
-        print(dict_suggest)
-        print(dict_wnis)
         while True:
                 print("\nList column :")
                 print_listing(dict_data)
@@ -143,6 +141,29 @@ def create_from_csv(path_sql, path_csv, con, cur):
             continue
         else:
             execute_sql(f"CREATE TABLE {table_name} ({string_SQL_data});COPY {table_name} FROM '{path_csv}{table_name}.csv' DELIMITER ',' CSV HEADER ENCODING 'UTF8';\n", con, cur)
+
+def create_from_csv_automatically(path_csv, con, cur):
+    files = os.listdir(path_csv)
+    for file in files:
+        file_path = f"{path_csv}/{file}"
+        with open(file_path, "r") as f:
+            table_name = file[:-4]
+            lines = list(csv.reader(f, delimiter=',', quotechar='"'))
+            header = lines[0]
+            max_varchar = get_max_varchar_from_csv(lines)
+            sql_data = [f"{header[i]} VARCHAR({max_varchar[i]})" for i in range(len(header))]
+            execute_sql(f"CREATE TABLE {table_name} ({','.join(sql_data)});COPY {table_name} FROM '{file_path}' DELIMITER ',' CSV HEADER ENCODING 'UTF8';\n", con, cur)
+
+
+
+def get_max_varchar_from_csv(lines):
+    l_max = [len(elem) for elem in lines[1]]
+    for i in range(2,len(lines)):
+        for j in range(len(lines[i])):
+            if l_max[j] < len(lines[i][j]):
+                l_max[j] = len(lines[i][j])
+    return l_max
+
 
 
 def print_listing(listing : dict):
@@ -279,7 +300,6 @@ def drop_tables(con, cur):
         con.commit()
     
 
-
 def init_db():
     print("If you wish to make it faster, change the entries directly on the code.")
     your_database = input("Insert Database: ")
@@ -308,7 +328,14 @@ def main(con):
             print("\nGoodbye !")
             break
         else:
-            create_from_csv(path_sql, path_csv, con, cur)
+            res = input("\nHow (1):\n1. Manualy\n2. Automatically\n3. Cancel\n\n")
+            if res == "2":
+                create_from_csv_automatically(path_csv, con, cur)
+            elif res == "3":
+                continue
+            else:
+                create_from_csv_manualy(path_sql, path_csv, con, cur)
+
 
     con.close()
 
